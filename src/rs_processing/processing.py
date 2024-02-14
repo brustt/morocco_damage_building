@@ -5,7 +5,7 @@ from typing import List, Union, Dict
 from shapely import Polygon
 
 
-def crop_rs_on_shape(rs_path: str, shape: Union[Polygon, List], out_path: str):
+def crop_rs_on_shape(rs_path: str, shape: Union[Polygon, List], out_path: str=None):
     """
     Crop raster from shapely geometry shape
 
@@ -28,7 +28,9 @@ def crop_rs_on_shape(rs_path: str, shape: Union[Polygon, List], out_path: str):
                 "transform": out_transform,
             }
         )
-
-        with rio.open(out_path, "w", **out_meta) as dest:
-            dest.write(out_image)
-    return out_path
+        if out_path:
+            with rio.open(out_path, "w", **out_meta) as dest:
+                dest.write(out_image)
+            return out_path
+        else:
+            return out_image

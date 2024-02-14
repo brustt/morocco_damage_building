@@ -1,4 +1,5 @@
 from datetime import datetime
+import itertools
 import logging
 from requests import Session
 from threading import local
@@ -8,6 +9,10 @@ import numpy as np
 import socket
 from pydantic import BaseModel
 import geopandas as gpd
+from shapely import box
+from typing import Union, List
+from src.io.utils_io import load_maxar_items
+from src.utils import get_maxar_items_on_roi
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -18,23 +23,43 @@ _root_url_id_ = "ard/29/"  # change for other collection maxar - see STAC catalo
 thread_local = local()
 
 
-def compute_intersection(shp_rs, shp_roi):
-    assert shp_rs.crs == shp_roi.crs
-    shp_rs = gpd.overlay(shp_rs, shp_roi, how="intersection")
-    shp_rs["intersec_roi_perc"] = shp_rs.area / shp_roi.area.item()
-    return shp_rs
+def get_nearest_match_geometry_view(town: gpd.GeoDataFrame, field: Union[str, List], maxar_items: gpd.GeoDataFrame=None, type_item: str=None, s_bbox: int=None):
+    
+    if (maxar_items is None) and (type_item is not None):
+        maxar_items = load_maxar_items(type_item=type_item)
+        
+    if isinstance(field, list):
+        raise TypeError("Multiple fields not implemented yet")
+        # TO DO : implement KNN based on multiple fields
+    
+    if field not in maxar_items.columns:
+        raise ValueError("Field is not allowed")
+    
+    match_town = {}
+    nearest = {}
+    
 
+    for name in town.town_name.unique(): 
+        match_town[name] = {}
+        items = get_maxar_items_on_roi(maxar_items, town[town.town_name == name], th=0.9, s_bbox=s_bbox)
+        for temp, v in zip(["after", "before"], [1, 0]):
+            match_town[name][temp] = items[items.after_event == v].reset_index(drop=True)
 
-def get_maxar_items_on_roi(
-    maxar_items: gpd.GeoDataFrame, roi: gpd.GeoDataFrame, th: float = 0.9
-):
+    # TO DO : check if if not empty
+    for name, temp_df in match_town.items(): 
+        nearest[name] = {}
+        b_arr, b_arr_indices =  list(temp_df["before"][field]),  list(temp_df["before"].index)
+        a_arr, a_arr_indices =  list(temp_df["after"][field]), list(temp_df["after"].index)
+        prod_cart_values = [np.abs(float(_[0]) - float(_[1])) for _ in itertools.product(b_arr, a_arr)]
+        prod_cart_indices = [_ for _ in itertools.product(b_arr_indices, a_arr_indices)]
+    
+        nearest_neigh, idx_nearest_neigh = np.min(prod_cart_values), np.argmin(prod_cart_values)
+    
+        # get df associated to best match
+        nearest[name]["before"] = match_town[name]["before"].iloc[prod_cart_indices[idx_nearest_neigh][0]].to_frame().T
+        nearest[name]["after"] = match_town[name]["after"].iloc[prod_cart_indices[idx_nearest_neigh][1]].to_frame().T
 
-    items_roi = compute_intersection(maxar_items, roi)
-    items_roi = items_roi[items_roi.intersec_roi_perc > th]
-    # order by date to be sur to get both before and after - workaround
-    items_roi = items_roi.sort_values("after_event", ascending=False)
-    logger.info(f"found {items_roi.shape[0]} maxar items")
-    return items_roi
+    return nearest
 
 
 class TypeAssetError(BaseException):

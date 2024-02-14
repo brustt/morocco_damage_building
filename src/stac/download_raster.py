@@ -32,24 +32,30 @@ def download_maxar_on_roi(
     limit_download: Union[int, None] = 5,
     remove_full_rs: bool = True,
 ) -> List[str]:
+    
 
     tif_local_path = []
 
     if not maxar_items:
         maxar_items = load_maxar_items(type_item=type_item)
+        
+  
 
     for name in roi_gdf.town_name.unique():
         logger.info(f"==== TOWN : {name} =====")
+        
+        name = "_".join(name.split(" "))
 
         roi_buffer = roi_gdf[roi_gdf.town_name == name]
-        if isinstance(roi_buffer.geometry.iloc[0], Point):
-            roi_buffer.geometry = [
-                box(*_.bounds) for _ in roi_buffer.buffer(buffer_size)
-            ]
-
+        
+        if isinstance(roi_buffer.geometry.iloc[0], Point) and not buffer_size:
+            raise ValueError("Please provide buffer size for point geometry")
+        
+        s_bbox = buffer_size if buffer_size else None
+            
         bbox_buffer = box(*roi_buffer.bounds.values.squeeze())
 
-        items_town = get_maxar_items_on_roi(maxar_items, roi_buffer, th_intersect)
+        items_town = get_maxar_items_on_roi(maxar_items, roi_buffer, th_intersect, s_bbox)
 
         path_town_dir = check_dir(interim_dir_path, type_item, name)
 
