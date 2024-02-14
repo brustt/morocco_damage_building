@@ -87,3 +87,16 @@ target/
 
 # Mypy cache
 .mypy_cache/
+
+# exclude qgis visualizations
+reports/qgis_projects/
+
+# exclude models
+models/
+
+# exclude Loftr repo
+LoFTR/
+
+# others
+.virtual_documents/
+cache/
