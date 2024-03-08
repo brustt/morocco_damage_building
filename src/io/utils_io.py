@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Union
 import glob 
 import logging
 import geopandas as gpd
-
+from pathlib import Path
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -72,6 +72,31 @@ def load_rs_path_toy(name: str,
 
     return dict(before=path_before, after=path_after)
 
+
+def load_pair_raster(source: Union[str, gpd.GeoDataFrame], zoom: int, name:str =None):
+    import rioxarray as rioxr
+
+    if isinstance(source, str):
+        files = [make_path(f, dir) for f in os.listdir(dir) if (Path(f).suffix ==".tif") and (f.startswith(str(zoom)))]
+        if len(files) == 2:
+            try:
+                rs_dict = dict(
+                    before=rioxr.open_rasterio([_ for _ in files if "before" in _][0]),
+                    after=rioxr.open_rasterio([_ for _ in files if "after" in _][0])
+                )
+            except:
+                raise FileNotFoundError("check if before and after rs exist")
+        else:
+            raise FileNotFoundError("too many / not enough files in directory")
+    elif isinstance(source, gpd.GeoDataFrame) and name is not None:
+                rs_dict = dict(
+                    before=rioxr.open_rasterio(source.loc[source.name == name, "before_path"].item()),
+                    after=rioxr.open_rasterio(source.loc[source.name == name, "after_path"].item())
+                )
+    else:
+        raise ValueError("please provide valid source and/or name")
+    return rs_dict
+
 def load_rs_toy(name: str, 
                  root_path:str=interim_dir_path, 
                  type_item: str="visual",
@@ -89,6 +114,7 @@ def load_rs_toy(name: str,
     res["after"] = [rioxr.open_rasterio(_) for _ in path_dict["after"]]
 
     return res
+    
     
     
     

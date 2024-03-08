@@ -47,17 +47,19 @@ def get_nearest_match_geometry_view(town: gpd.GeoDataFrame, field: Union[str, Li
 
     # TO DO : check if if not empty
     for name, temp_df in match_town.items(): 
-        nearest[name] = {}
-        b_arr, b_arr_indices =  list(temp_df["before"][field]),  list(temp_df["before"].index)
-        a_arr, a_arr_indices =  list(temp_df["after"][field]), list(temp_df["after"].index)
-        prod_cart_values = [np.abs(float(_[0]) - float(_[1])) for _ in itertools.product(b_arr, a_arr)]
-        prod_cart_indices = [_ for _ in itertools.product(b_arr_indices, a_arr_indices)]
-    
-        nearest_neigh, idx_nearest_neigh = np.min(prod_cart_values), np.argmin(prod_cart_values)
-    
-        # get df associated to best match
-        nearest[name]["before"] = match_town[name]["before"].iloc[prod_cart_indices[idx_nearest_neigh][0]].to_frame().T
-        nearest[name]["after"] = match_town[name]["after"].iloc[prod_cart_indices[idx_nearest_neigh][1]].to_frame().T
+        if len(temp_df["before"]) > 0 and len(temp_df["after"]) > 0:
+
+            nearest[name] = {}
+            b_arr, b_arr_indices =  list(temp_df["before"][field]),  list(temp_df["before"].index)
+            a_arr, a_arr_indices =  list(temp_df["after"][field]), list(temp_df["after"].index)
+            prod_cart_values = [np.abs(float(_[0]) - float(_[1])) for _ in itertools.product(b_arr, a_arr)]
+            prod_cart_indices = [_ for _ in itertools.product(b_arr_indices, a_arr_indices)]
+            #print(prod_cart_values)
+            nearest_neigh, idx_nearest_neigh = np.min(prod_cart_values), np.argmin(prod_cart_values)
+        
+            # get df associated to best match
+            nearest[name]["before"] = match_town[name]["before"].iloc[prod_cart_indices[idx_nearest_neigh][0]].to_frame().T
+            nearest[name]["after"] = match_town[name]["after"].iloc[prod_cart_indices[idx_nearest_neigh][1]].to_frame().T
 
     return nearest
 

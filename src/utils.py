@@ -13,6 +13,15 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
+def get_href_nearest(nearest, roi_name):
+    return {
+        "before": nearest[roi_name]["before"]["href"].item(),
+        "after": nearest[roi_name]["after"]["href"].item()
+    }
+
+
+
 def convert_to_raster(img: np.ndarray, rs_ref: Union[PosixPath, str, xr.DataArray], crs=CRS, out_path: Union[str, None]=None):
     
     if isinstance(rs_ref, str) or isinstance(rs_ref, PosixPath):
