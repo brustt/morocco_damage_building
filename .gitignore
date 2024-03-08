@@ -100,3 +100,8 @@ LoFTR/
 # others
 .virtual_documents/
 cache/
+
+
+_not_used/
+qgis_projects/
+figures/
