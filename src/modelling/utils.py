@@ -136,10 +136,8 @@ def otsu(data, num=400, get_bcm=False):
         bwp = np.zeros(data.shape)
         bwp[data <= best_threshold] = 0
         bwp[data > best_threshold] = 255
-        print('otsu is done')
         return bwp, best_threshold
     else:
-        print('otsu is done')
         return best_threshold
 
 
